@@ -27,9 +27,9 @@ def ssh_command(conduit, user, host, command):
     """
     global password
     ret = 0
+    conduit.info(2, "======================================")
     try: 
         cmd = "/usr/bin/ssh -t -l %s %s %s"%(user, host, command)
-        conduit.info(2, "======================================")
         conduit.info(2, "Command: <<<%s>>>"%(cmd))
         p = pexpect.spawn(cmd, maxread = 512)
         # donot show the password
@@ -84,6 +84,7 @@ def ssh_command(conduit, user, host, command):
 
     except Exception, e:
         conduit.info(2, e)
+    conduit.info(2, "======================================")
 
     return ret
 
@@ -161,7 +162,6 @@ def args_hook(conduit):
             fail_list.append(host)
 
     if len(host_list) > 0:
-        conduit.info(2, "======================================")
         conduit.info(2, "Summary:")
         conduit.info(2, " total: " + str(len(host_list)) + " hosts")
         conduit.info(2, " succ : " + str(len(succ_list)) + " hosts")
@@ -174,5 +174,5 @@ def args_hook(conduit):
             conduit.info(2, " fail_list:")
             for h in fail_list:
                 conduit.info(2, "   " + h)
-        raise PluginYumExit('Goodbye')
+        raise PluginYumExit('Goodbye!')
 
