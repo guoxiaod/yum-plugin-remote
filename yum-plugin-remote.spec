@@ -10,7 +10,7 @@ BuildArch: noarch
 Source0: http://github.com/guoxiaod/%{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
-Requires: yum, openssh
+Requires: yum, openssh, pexpect
 
 %description
 This plugin run yum command on remote host.

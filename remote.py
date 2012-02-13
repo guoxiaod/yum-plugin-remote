@@ -2,14 +2,90 @@ import os
 import re
 import subprocess
 import types
+import pexpect
+import getpass
+import pxssh
+import sys
+
 from yum.plugins import PluginYumExit, TYPE_CORE, TYPE_INTERACTIVE
 
 requires_api_version = '2.3'
 plugin_type = (TYPE_CORE, TYPE_INTERACTIVE)
+password = None
 
 def is_int(s):
     return re.match("^[\d]+$", s)  is not None
 
+    
+def ssh_command(conduit, user, host, command):
+    """ Run command on remote host
+    :param conduit
+    :param user 
+    :param host
+    :command
+    :return exitstatus
+    """
+    global password
+    ret = 0
+    try: 
+        cmd = "/usr/bin/ssh -t -l %s %s %s"%(user, host, command)
+        conduit.info(2, "======================================")
+        conduit.info(2, "Command: <<<%s>>>"%(cmd))
+        p = pexpect.spawn(cmd, maxread = 512)
+        # donot show the password
+        p.setecho(False)
+        # make all the output display
+        p.logfile = sys.stdout
+        while True:
+            idx = p.expect(["(?i)are you sure you want to continue connecting", 
+                        "(?i)(?:password)|(?:passphrase for key)", 
+                        "(?i)permission denied",
+                        "(?i)terminal type", 
+                        "(?i)connection closed by remote host",
+                        pexpect.EOF,
+                        pexpect.TIMEOUT], timeout = 3600)
+                
+            if idx == 0:
+                p.sendline("yes")
+            elif idx == 1:
+                if password is None:
+                    password = getpass.getpass("\nPassword for %s@%s:"%(user, host))
+
+                # cann't display the password
+                p.logfile = None
+                p.sendline(password)
+                p.logfile = sys.stdout
+
+            elif idx == 2:
+                p.close()
+                ret = p.exitstatus
+                raise Exception("Permission deny for %s@%s!"%(user, host))
+                break
+
+            elif idx == 3:
+                p.sendline("ansi")
+
+            elif idx == 4 or idx == 5:
+                p.close()
+                ret = p.exitstatus
+                break
+
+            elif idx == 6:
+                p.close()
+                ret = p.exitstatus
+                raise Exception("Timeout!")
+                break
+
+            else:
+                p.close()
+                ret = p.exitstatus
+                raise Exception("Unexpected response for %s@%s!"%(user, host))
+                break
+
+    except Exception, e:
+        conduit.info(2, e)
+
+    return ret
 
 def parse_host(host):
     """  Parse string to host list
@@ -19,9 +95,9 @@ def parse_host(host):
     """
     ret = []
     m = re.search("\[([a-z\d\-,]+)\]", host)
-    if m is None:
+    if host != "" and m is None:
         ret.append(host)
-    else:
+    elif host != "":
         match = m.group(0)
         item_list = m.group(1).split(",")
         for item in item_list:
@@ -74,27 +150,22 @@ def args_hook(conduit):
     
     host_list = parse_host_list(host_list)
     
-    total = 0
-    succ = 0
     fail_list = []
     succ_list = []
-    for h in host_list:
+    for host in host_list:
         remote_cmd = "sudo /usr/bin/yum " +  " ".join(rargs)
-        cmd = ["/usr/bin/ssh -t ", user + "@" +  h, remote_cmd]
-        conduit.info(1, "====================================")
-        conduit.info(1, "Command: <<<" + " ".join(cmd) + ">>>")
-        sts = subprocess.call(" ".join(cmd),  shell = True)
-        total += 1
+        sts = ssh_command(conduit, user, host, remote_cmd)
         if sts == 0:
-            succ += 1
-            succ_list.append(h)
+            succ_list.append(host)
         else:
-            fail_list.append(h)
+            fail_list.append(host)
 
     if len(host_list) > 0:
+        conduit.info(2, "======================================")
         conduit.info(2, "Summary:")
-        conduit.info(2, " total: " + str(total) + " hosts")
-        conduit.info(2, " succ : " + str(succ) + " hosts")
+        conduit.info(2, " total: " + str(len(host_list)) + " hosts")
+        conduit.info(2, " succ : " + str(len(succ_list)) + " hosts")
+        conduit.info(2, " fail : " + str(len(fail_list)) + " hosts")
         if len(succ_list) > 0:
             conduit.info(2, " succ_list:")
             for h in succ_list:

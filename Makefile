@@ -23,3 +23,7 @@ install:
 
 test:
 	./test.py
+
+clean:
+	rm -rf *.tar.gz
+	rm -rf *.rpm
