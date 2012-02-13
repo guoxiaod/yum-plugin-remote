@@ -6,10 +6,11 @@ Summary: Run yum command on remote host Plugin for Yum
 Group: System Environment/Base
 License: GPL
 URL: http://github.com/guoxiaod/%{name}
-Source0: http://github.com/guoxiaod/${name}-%{version}.tar.gz
-BuildRoot: %(miktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+BuildArch: noarch
+Source0: http://github.com/guoxiaod/%{name}-%{version}.tar.gz
+BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
-Requires: yum
+Requires: yum, openssh
 
 %description
 This plugin run yum command on remote host.
@@ -39,8 +40,8 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %doc README LICENSE ChangeLog
-%config(noreplace) %{_sysconfdir}/yum/pluginconf.d/replace.conf
-%{_prefix}/lib/yum-plugins/replace.py*
+%config(noreplace) %{_sysconfdir}/yum/pluginconf.d/remote.conf
+%{_prefix}/lib/yum-plugins/remote.py*
 
 
 
