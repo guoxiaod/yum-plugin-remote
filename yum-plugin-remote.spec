@@ -14,7 +14,7 @@ Requires: yum, openssh, pexpect
 
 %description
 This plugin run yum command on remote host.
-Just add an option "--host" to yum command line, so we can specific the remote host
+Just add an option "--host" to yum command line, so we can specific the remote hosts
 we will run command on.
 
 %prep
