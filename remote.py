@@ -36,45 +36,67 @@ def ssh_command(conduit, user, host, command):
         p.setecho(False)
         # make all the output display
         p.logfile = sys.stdout
+        retry = 3
         while True:
-            idx = p.expect(["(?i)are you sure you want to continue connecting", 
-                        "(?i)(?:password)|(?:passphrase for key)", 
-                        "(?i)permission denied",
+            idx = p.expect(["(?i)are you sure you want to continue connecting",  # ssh host
+                        "(?is)Sorry, try again\..*\[sudo\] password for", # sudo
+                        "(?i)permission denied", # ssh host
+                        "(?i)(?:password)|(?:passphrase for key)",  # ssh host
                         "(?i)terminal type", 
                         "(?i)connection closed by remote host",
                         pexpect.EOF,
-                        pexpect.TIMEOUT], timeout = 3600)
+                        pexpect.TIMEOUT,
+                        "(?i)Is this ok \[y\/N\]:",
+                        ], timeout = 3600)
                 
-            if idx == 0:
+            if idx == 0: # ssh host
                 p.sendline("yes")
-            elif idx == 1:
+
+            elif idx == 1: # sudo retry
+                if retry > 0:
+                    password = getpass.getpass("")
+                    p.logfile = None
+                    p.sendline(password)
+                    p.logfile = sys.stdout
+                else:
+                    p.close()
+                    ret = p.exitstatus
+                    raise Exception("Permission deny for %s@%s!"%(user, host))
+                    break
+                retry -= 1
+
+            elif idx == 2: # permission deny
+                p.close()
+                ret = p.exitstatus
+                raise Exception("Permission deny for %s@%s!"%(user, host))
+                break
+
+            elif idx == 3: # password
                 if password is None:
-                    password = getpass.getpass("\nPassword for %s@%s:"%(user, host))
+                    password = getpass.getpass("")
 
                 # cann't display the password
                 p.logfile = None
                 p.sendline(password)
                 p.logfile = sys.stdout
 
-            elif idx == 2:
-                p.close()
-                ret = p.exitstatus
-                raise Exception("Permission deny for %s@%s!"%(user, host))
-                break
 
-            elif idx == 3:
+            elif idx == 4: # terminal type
                 p.sendline("ansi")
 
-            elif idx == 4 or idx == 5:
+            elif idx == 5 or idx == 6:
                 p.close()
                 ret = p.exitstatus
                 break
 
-            elif idx == 6:
+            elif idx == 7:
                 p.close()
                 ret = p.exitstatus
                 raise Exception("Timeout!")
                 break
+
+            elif idx == 8:
+                p.sendline("y")
 
             else:
                 p.close()
