@@ -5,3 +5,4 @@ Creator: Anders Guo <gxd305@gmail.com>
 
    $ yum install mysql --host <host1> --host <host2> --host <host3> ...
    $ yum install mysql --host fe[1-9].example.com --host [fe,api,db][1-9,12].example.com
+   $ yum ssh ls --host fe[1-9].example.com
