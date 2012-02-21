@@ -30,7 +30,7 @@ def ssh_command(conduit, user, host, command):
     conduit.info(2, "======================================")
     try: 
         cmd = "/usr/bin/ssh -t -l %s %s %s"%(user, host, command)
-        conduit.info(2, "Command: <<<%s>>>"%(cmd))
+        conduit.info(2, "Command: <<< %s >>>"%(cmd))
         p = pexpect.spawn(cmd, maxread = 512)
         # donot show the password
         p.setecho(False)
@@ -155,46 +155,72 @@ def config_hook(conduit):
 
 def args_hook(conduit):
     args = conduit.getArgs()
-    host_list = []
-    rargs = []
-    last = 0
     user = os.environ["USER"]
     if "SUDO_USER" in os.environ:
         user = os.environ["SUDO_USER"]
-    for arg in args:
-        if arg == "--host":
-            last = 1
-        else:
-            if last == 1:
-                host_list.append(arg)
-                last = 0
-            else:
-                rargs.append(arg)
-    
-    host_list = parse_host_list(host_list)
-    
-    fail_list = []
-    succ_list = []
-    for host in host_list:
-        remote_cmd = "sudo /usr/bin/yum " +  " ".join(rargs)
-        sts = ssh_command(conduit, user, host, remote_cmd)
-        if sts == 0:
-            succ_list.append(host)
-        else:
-            fail_list.append(host)
 
+    cmd = None
+    last = 0
+    host_list = []
+    before_args = []
+    after_args = []
+    # yum -a -b --host h1 install yyy yyy --host h2 -c -d
+    # before [-a -b]
+    # after [yyy yyy -c -d]
+    # host_list [h1 h2]
+    # cmd install
+    for arg in args:
+        if cmd == None and arg[0] != '-':
+            cmd = arg
+            continue
+
+        if arg == '--host':
+            last = 1
+            continue
+        elif last == 1:
+            host_list.append(arg)
+            last = 0
+            continue
+            
+        if cmd == None:
+            before_args.append(arg)
+        else:
+            after_args.append(arg)
+            
+    host_list = parse_host_list(host_list)
+
+    # only if len(host_list) > 0, we should run command on remote host
     if len(host_list) > 0:
-        conduit.info(2, "Summary:")
-        conduit.info(2, " total: " + str(len(host_list)) + " hosts")
-        conduit.info(2, " succ : " + str(len(succ_list)) + " hosts")
-        conduit.info(2, " fail : " + str(len(fail_list)) + " hosts")
-        if len(succ_list) > 0:
-            conduit.info(2, " succ_list:")
-            for h in succ_list:
-                conduit.info(2, "   " + h)
-        if len(fail_list) > 0:
-            conduit.info(2, " fail_list:")
-            for h in fail_list:
-                conduit.info(2, "   " + h)
+
+        fail_list = []
+        succ_list = []
+        remote_cmd = ""
+        if cmd == "ssh":
+            remote_cmd = " ".join(after_args)
+        else:
+            before_args.extend([" ", cmd, " "])
+            before_args.extend(after_args)
+            remote_cmd = "sudo /usr/bin/yum " + " ".join(before_args)
+
+        for host in host_list:
+            sts = ssh_command(conduit, user, host, remote_cmd)
+            if sts == 0:
+                succ_list.append(host)
+            else:
+                fail_list.append(host)
+
+        if cmd != 'ssh':
+            conduit.info(2, "Summary:")
+            conduit.info(2, " total: " + str(len(host_list)) + " hosts")
+            conduit.info(2, " succ : " + str(len(succ_list)) + " hosts")
+            conduit.info(2, " fail : " + str(len(fail_list)) + " hosts")
+            if len(succ_list) > 0:
+                conduit.info(2, " succ_list:")
+                for h in succ_list:
+                    conduit.info(2, "   " + h)
+            if len(fail_list) > 0:
+                conduit.info(2, " fail_list:")
+                for h in fail_list:
+                    conduit.info(2, "   " + h)
         raise PluginYumExit('Goodbye!')
 
