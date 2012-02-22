@@ -29,6 +29,9 @@ install:
 test:
 	./test.py
 
+t: 
+	sudo cp remote.py /usr/lib/yum-plugins/remote.py
+
 clean:
 	rm -rf *.tar.gz
 	rm -rf *.rpm
