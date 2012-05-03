@@ -187,6 +187,9 @@ def config_hook(conduit):
     parser = conduit.getOptParser()
     parser.add_option('', '--host', dest='host',
         default='', help="remote servers which we will run command on")
+
+    parser.add_option('', '--host-file', dest='host_file',
+        default='', help="like --host, but the servers should be in a file per line")
     
     parser.add_option('', '--user', dest='user',
         default='', help="if specific, we will run command on remote servers as user")
@@ -215,6 +218,14 @@ def args_hook(conduit):
 
         if arg[0:7] == "--host=":
             host_list.append(arg[7:])
+        elif arg[0:12] == "--host-file=":
+            file = arg[12:]
+            try:
+                host_list.extend([line.strip() for line in open(file, "r")])
+            except:
+                print "File '%s' not exists!" % (file)
+                sys.exit()
+
         elif arg[0:7] == "--user=":
             user = arg[7:] or user
         else:
