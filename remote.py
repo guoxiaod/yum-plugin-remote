@@ -34,6 +34,23 @@ class SshCommand(YumCommand):
     def doCommand(self, base, basecmd, extcmds):
         return 0, ["ok"]
 
+""" parse host string, just make the usage show ls-host command """
+class LsHostCommand(YumCommand):
+    def getNames(self):
+        return ['ls-host']
+    
+    def getUsage(self):
+        return ("PACKAGE...")
+    
+    def getSummary(self):
+        return ("Parse the host string like 192.168.1.[1-100]")
+
+    def doCheck(self, base, basecmd, extcmds):
+        pass
+
+    def doCommand(self, base, basecmd, extcmds):
+        return 0, ["ok"]
+
 def is_int(s):
     return re.match("^[\d]+$", s)  is not None
     
@@ -195,6 +212,7 @@ def config_hook(conduit):
         default='', help="if specific, we will run command on remote servers as user")
 
     conduit._base.registerCommand(SshCommand())
+    conduit._base.registerCommand(LsHostCommand())
 
 def args_hook(conduit):
     args = conduit.getArgs()
@@ -234,7 +252,12 @@ def args_hook(conduit):
     host_list = parse_host_list(host_list)
 
     # only if len(host_list) > 0, we should run command on remote host
-    if len(host_list) > 0:
+    if cmd == 'ls-host':
+        for h in host_list:
+            print h
+        raise PluginYumExit('')
+
+    elif len(host_list) > 0:
 
         fail_list = []
         succ_list = []

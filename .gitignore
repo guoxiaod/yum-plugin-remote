@@ -1,2 +1,4 @@
 *.rpm
 *.pyc
+makefile
+host_file

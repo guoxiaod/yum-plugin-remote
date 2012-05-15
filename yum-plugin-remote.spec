@@ -1,5 +1,5 @@
 Name: yum-plugin-remote
-Version: 0.1.1
+Version: 0.1.2
 Release: 1%{?dist}
 Summary: Run yum command on remote host Plugin for Yum
 
@@ -46,6 +46,8 @@ rm -rf %{buildroot}
 
 
 %changelog
+* Tue May 15 2012 Anders <gxd305@gmail.com> - 0.1.2
+- add ls-host command to list the parse host result
 * Tue Feb 21 2012 Anders <gxd305@gmail.com> - 0.1.1
 - add run command on remote server function
 * Mon Feb 13 2012 Anders <gxd305@gmail.com> - 0.1.0
