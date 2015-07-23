@@ -66,7 +66,7 @@ def ssh_command(conduit, user, host, command):
     ret = 0
     conduit.info(2, "[remote] ======================================")
     try: 
-        cmd = "/usr/bin/ssh -t -l %s %s %s"%(user, host, command)
+        cmd = "/usr/bin/ssh -t -l %s %s %s"%(user, host, command.replace("\'", "\\\'"))
         conduit.info(2, "[remote] %s@%s>%s "%(user, host, command))
         p = pexpect.spawn(cmd, maxread = 512)
         # donot show the password
